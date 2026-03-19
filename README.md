@@ -35,7 +35,7 @@ git clone https://github.com/Andbal23/extension-profiles.git
 **2.** Enter the directory:
 
 ```bash
-cd dynamic-music-pill
+cd extension-profiles
 ```
 
 **3.** Create the extension directory:
