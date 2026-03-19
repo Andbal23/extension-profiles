@@ -4,6 +4,12 @@ A GNOME Shell extension that lets you create, manage, and instantly switch betwe
 
 Perfect for users who need different desktop setups for Work, Gaming, Battery-Saving mode, or Screen Sharing.
 
+---
+
+![Views](https://komarev.com/ghpvc/?username=Andbal23&repo=extension-profiles&label=Views&color=green) ![GNOME Shell](https://img.shields.io/badge/GNOME-45%20--%2050-blue?logo=gnome&logoColor=white) ![GitHub License](https://img.shields.io/github/license/Andbal23/extension-profiles)
+[![Stars](https://img.shields.io/github/stars/Andbal23/extension-profiles?style=social)](https://github.com/Andbal23/extension-profiles/stargazers)
+---
+
 ## Features
 
 * **Quick Switch:** Change your active profile directly from the system tray indicator.
