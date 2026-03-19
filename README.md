@@ -70,3 +70,31 @@ glib-compile-schemas schemas/
 ```bash
 gnome-extensions enable extension-profiles@andbal
 ```
+
+---
+## Check out this one too:)
+https://github.com/Andbal23/dynamic-music-pill
+
+---
+## Support the Project
+
+<div align="center">
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow?style=for-the-badge&logo=buy-me-a-coffee)](https://www.buymeacoffee.com/andbal)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-red?style=for-the-badge&logo=ko-fi)](https://ko-fi.com/andbal)
+
+</div>
+
+---
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Andbal23/extension-profiles&type=Date)](https://star-history.com/#Andbal23/extension-profiles&Date)
+
+---
+
+## License
+
+This project is licensed under the [GPL-3.0 License](LICENSE).
+
+<p align="center">Made with ❤️ for the GNOME community.</p>
