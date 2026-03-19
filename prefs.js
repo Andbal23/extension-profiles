@@ -19,11 +19,14 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         const profileNames = Object.keys(this._profiles);
         this._editing = profileNames.length > 0 ? profileNames[0] : null;
 
-        const page = new Adw.PreferencesPage();
-        window.add(page);
+        const pageProfiles = new Adw.PreferencesPage({
+            title: 'Profiles',
+            icon_name: 'view-list-symbolic'
+        });
+        window.add(pageProfiles);
 
         const startupGroup = new Adw.PreferencesGroup({title: 'Startup'});
-        page.add(startupGroup);
+        pageProfiles.add(startupGroup);
 
         const modeRow = new Adw.ComboRow({
             title: 'On login',
@@ -52,7 +55,7 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         this._refreshDefaultProfileCombo();
 
         this._mgmtGroup = new Adw.PreferencesGroup({title: 'Profiles'});
-        page.add(this._mgmtGroup);
+        pageProfiles.add(this._mgmtGroup);
 
         const newRow = new Adw.ActionRow({title: 'New profile'});
         this._nameEntry = new Gtk.Entry({
@@ -111,7 +114,7 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         this._mgmtGroup.add(this._syncRow);
 
         this._extGroup = new Adw.PreferencesGroup();
-        page.add(this._extGroup);
+        pageProfiles.add(this._extGroup);
 
         const refreshButton = new Gtk.Button({
             icon_name: 'view-refresh-symbolic',
@@ -125,7 +128,48 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         });
         this._extGroup.set_header_suffix(refreshButton);
 
+        const pageAlwaysOn = new Adw.PreferencesPage({
+            title: 'Always Enabled',
+            icon_name: 'security-high-symbolic'
+        });
+        window.add(pageAlwaysOn);
+
+        const alwaysOnGroup = new Adw.PreferencesGroup({
+            title: 'Whitelist',
+            description: 'These extensions will NEVER be disabled, regardless of which profile is active.'
+        });
+        pageAlwaysOn.add(alwaysOnGroup);
+
+        this._rebuildAlwaysOnRows(alwaysOnGroup);
+
         this._refreshCombo();
+    }
+
+    _rebuildAlwaysOnRows(group) {
+        const alwaysEnabled = this._settings.get_strv('always-enabled');
+        const sorted = [...this._installed].sort((a, b) => a.name.localeCompare(b.name));
+
+        for (const ext of sorted) {
+            const row = new Adw.ActionRow({title: ext.name, subtitle: ext.uuid});
+            const toggle = new Gtk.Switch({
+                active: alwaysEnabled.includes(ext.uuid),
+                valign: Gtk.Align.CENTER,
+            });
+
+            toggle.connect('notify::active', () => {
+                const currentList = new Set(this._settings.get_strv('always-enabled'));
+                if (toggle.get_active()) {
+                    currentList.add(ext.uuid);
+                } else {
+                    currentList.delete(ext.uuid);
+                }
+                this._settings.set_strv('always-enabled', [...currentList]);
+            });
+
+            row.add_suffix(toggle);
+            row.activatable_widget = toggle;
+            group.add(row);
+        }
     }
 
     _refreshDefaultProfileCombo() {

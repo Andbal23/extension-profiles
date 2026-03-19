@@ -109,8 +109,9 @@ export default class ExtensionProfiles extends Extension {
     }
 
     applyProfile(profileName, extensions) {
-        if (this._applySourceId)
+        if (this._applySourceId) {
             GLib.Source.remove(this._applySourceId);
+        }
 
         this._applySourceId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
             this._applySourceId = null;
@@ -120,38 +121,18 @@ export default class ExtensionProfiles extends Extension {
     }
 
     _doApply(profileName, extensions) {
-        let allProfiles = {};
-        try {
-            allProfiles = JSON.parse(this._settings.get_string('profiles'));
-        } catch {
-        }
-
-        const allManaged = new Set(Object.values(allProfiles).flat());
-        allManaged.delete(this.uuid);
-
         const shellSettings = new Gio.Settings({schema_id: 'org.gnome.shell'});
 
-        const disabled = new Set(shellSettings.get_strv('disabled-extensions'));
-        let disabledChanged = false;
-        for (const uuid of allManaged) {
-            if (extensions.includes(uuid) && disabled.has(uuid)) {
-                disabled.delete(uuid);
-                disabledChanged = true;
-            }
-        }
-        disabled.delete(this.uuid);
-        if (disabledChanged)
-            shellSettings.set_strv('disabled-extensions', [...disabled]);
+        const newEnabled = new Set(extensions);
 
-        const enabled = new Set(shellSettings.get_strv('enabled-extensions'));
-        for (const uuid of allManaged) {
-            if (extensions.includes(uuid))
-                enabled.add(uuid);
-            else
-                enabled.delete(uuid);
+        const alwaysEnabled = this._settings.get_strv('always-enabled');
+        for (const uuid of alwaysEnabled) {
+            newEnabled.add(uuid);
         }
-        enabled.add(this.uuid);
-        shellSettings.set_strv('enabled-extensions', [...enabled]);
+
+        newEnabled.add(this.uuid);
+
+        shellSettings.set_strv('enabled-extensions', [...newEnabled]);
 
         this._settings.set_string('active-profile', profileName);
     }

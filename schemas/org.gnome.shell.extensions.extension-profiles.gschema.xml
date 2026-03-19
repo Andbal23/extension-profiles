@@ -4,26 +4,33 @@
           path="/org/gnome/shell/extensions/extension-profiles/">
 
     <key name="profiles" type="s">
-      <default>'{}'</default>
+      <default>'[]'</default>
       <summary>Extension profiles</summary>
-      <description>JSON object mapping profile names to arrays of extension UUIDs.</description>
+      <description>JSON array of profile objects.</description>
     </key>
 
     <key name="active-profile" type="s">
       <default>''</default>
-      <summary>Active profile name</summary>
+      <summary>Active profile ID</summary>
+      <description>The ID of the currently active profile, or empty string if none.</description>
     </key>
 
     <key name="startup-mode" type="s">
       <default>'none'</default>
-      <summary>Startup behaviour</summary>
-      <description>One of: "none", "last", "default".</description>
+      <summary>Startup Mode</summary>
+      <description>What to do on login: none, last, or default.</description>
     </key>
 
     <key name="default-profile" type="s">
       <default>''</default>
-      <summary>Default profile name</summary>
-      <description>Profile to apply on login when startup-mode is "default".</description>
+      <summary>Default Profile</summary>
+      <description>Profile to apply on startup if mode is default.</description>
+    </key>
+
+    <key name="always-enabled" type="as">
+      <default>[]</default>
+      <summary>Always enabled extensions</summary>
+      <description>List of extension UUIDs that should never be disabled during profile switches.</description>
     </key>
 
   </schema>
