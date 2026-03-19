@@ -19,6 +19,9 @@ Perfect for users who need different desktop setups for Work, Gaming, Battery-Sa
   * *Apply a specific default profile*
 * **Modern Preferences UI:** Built with GTK4 and libadwaita. Create, rename, delete, and manage profiles effortlessly.
 * **Sync from System:** Easily overwrite any profile with the exact extensions you currently have enabled in GNOME.
+* **Indicator Style:** You can customize the style of the indicator.
+* **Keyboard Shortcut** You can set custom shortcut to open the pop up menu.
+* **Import/Export** Save or Load profiles easily or move it to an other PC.
 * **Always Enabled:** Extensions you don't want to include to any of your profile.
 
 ## Tray Icon
@@ -40,7 +43,7 @@ Perfect for users who need different desktop setups for Work, Gaming, Battery-Sa
 ### From GNOME Extensions Store (Recommended) (Comming Soon)....
 
 <p align="center">
-  <a href="https://extensions.gnome.org/extension/9334/dynamic-music-pill/">
+  <a href="https://extensions.gnome.org/extension/9545/extension-profiles/">
     <img alt="Get it on GNOME Extensions" width="400" src="https://raw.githubusercontent.com/andyholmes/gnome-shell-extensions-badge/master/get-it-on-ego.svg?sanitize=true"/>
   </a>
 </p>
