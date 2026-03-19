@@ -16,7 +16,7 @@
     </key>
 
     <key name="startup-mode" type="s">
-      <default>'none'</default>
+      <default>'last'</default>
       <summary>Startup Mode</summary>
       <description>What to do on login: none, last, or default.</description>
     </key>
