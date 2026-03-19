@@ -2,7 +2,21 @@
     "uuid": "extension-profiles@andbal",
     "name": "Extension Profiles",
     "description": "Save and switch between profiles that enable or disable sets of GNOME Shell extensions.",
-    "shell-version": ["45", "46", "47", "48", "49", "50"],
+    "shell-version": [
+        "45",
+        "46",
+        "47",
+        "48",
+        "49",
+        "50"
+    ],
     "settings-schema": "org.gnome.shell.extensions.extension-profiles",
-    "url": "https://github.com/Andbal23/extension-profiles"
+    "donations": {
+        "github": "Andbal23",
+        "paypal": "andraslaszlo23",
+        "buymeacoffee": "andbal",
+        "kofi": "andbal"
+    },
+    "url": "https://github.com/Andbal23/extension-profiles",
+    "version": 1
 }
