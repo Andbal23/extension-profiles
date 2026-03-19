@@ -19,9 +19,9 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         const profileNames = Object.keys(this._profiles);
         this._editing = profileNames.length > 0 ? profileNames[0] : null;
 
-        const pageProfiles = new Adw.PreferencesPage({
-            title: 'Profiles',
-            icon_name: 'view-list-symbolic'
+        const pageProfiles = new Adw.PreferencesPage({ 
+            title: 'Profiles', 
+            icon_name: 'view-list-symbolic' 
         });
         window.add(pageProfiles);
 
@@ -128,9 +128,10 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         });
         this._extGroup.set_header_suffix(refreshButton);
 
-        const pageAlwaysOn = new Adw.PreferencesPage({
-            title: 'Always Enabled',
-            icon_name: 'security-high-symbolic'
+
+        const pageAlwaysOn = new Adw.PreferencesPage({ 
+            title: 'Always Enabled', 
+            icon_name: 'security-high-symbolic' 
         });
         window.add(pageAlwaysOn);
 
@@ -141,6 +142,93 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         pageAlwaysOn.add(alwaysOnGroup);
 
         this._rebuildAlwaysOnRows(alwaysOnGroup);
+
+
+        const aboutPage = new Adw.PreferencesPage({
+            title: 'About',
+            icon_name: 'help-about-symbolic'
+        });
+        
+        const whatsNewGroup = new Adw.PreferencesGroup({ 
+            title: "What's New" 
+        });
+
+        const releaseRow = new Adw.ExpanderRow({
+            title: "v1.0 - Initial Release",
+            subtitle: "Whitelist & Core Features",
+            expanded: true
+        });
+
+        const releaseNotes = new Gtk.Label({
+            label: "Features:\n" +
+                   "• Extension Profiles: Create, manage, and instantly switch between different sets of GNOME extensions.\n" +
+                   "• Whitelist (Always Enabled): Keep your essential extensions running safely regardless of the active profile.\n" +
+                   "• Smart Startup: Choose what happens when you log in (Restore last used, apply a default, or do nothing).\n" +
+                   "• Sync from System: Easily overwrite any profile with the exact extensions you currently have enabled in GNOME.",
+            justify: Gtk.Justification.LEFT, 
+            xalign: 0,                       
+            wrap: true,                      
+            margin_top: 10,
+            margin_bottom: 10,
+            margin_start: 15,
+            margin_end: 15
+        });
+
+        releaseRow.add_row(releaseNotes);
+        whatsNewGroup.add(releaseRow);
+        aboutPage.add(whatsNewGroup);
+
+        const supportGroup = new Adw.PreferencesGroup({
+            title: 'Support the Project'
+        });
+
+        const kofiRow = new Adw.ActionRow({
+            title: 'Support on Ko-fi',
+            subtitle: 'Buy me a coffee on Ko-fi'
+        });
+        const kofiBtn = new Gtk.Button({ label: 'Open', valign: Gtk.Align.CENTER, css_classes: ['suggested-action'] });
+        kofiBtn.connect('clicked', () => Gio.AppInfo.launch_default_for_uri('https://ko-fi.com/andbal', null));
+        kofiRow.add_suffix(kofiBtn);
+        supportGroup.add(kofiRow);
+
+        const bmacRow = new Adw.ActionRow({
+            title: 'Buy Me a Coffee',
+            subtitle: 'Support via BuyMeACoffee'
+        });
+        const bmacBtn = new Gtk.Button({ label: 'Open', valign: Gtk.Align.CENTER, css_classes: ['suggested-action'] });
+        bmacBtn.connect('clicked', () => Gio.AppInfo.launch_default_for_uri('https://buymeacoffee.com/andbal', null));
+        bmacRow.add_suffix(bmacBtn);
+        supportGroup.add(bmacRow);
+
+        const githubRow = new Adw.ActionRow({
+            title: 'Source Code',
+            subtitle: 'Report bugs or view source on GitHub'
+        });
+        const githubBtn = new Gtk.Button({ icon_name: 'external-link-symbolic', valign: Gtk.Align.CENTER });
+        githubBtn.connect('clicked', () => Gio.AppInfo.launch_default_for_uri('https://github.com/Andbal23/extension-profiles', null));
+        githubRow.add_suffix(githubBtn);
+        supportGroup.add(githubRow);
+
+        aboutPage.add(supportGroup);
+
+        const promoGroup = new Adw.PreferencesGroup({
+            title: 'Check Out My Other Extension'
+        });
+
+        const promoRow = new Adw.ActionRow({
+            title: 'Dynamic Music Pill',
+            subtitle: 'A dynamic, elegant, and highly customizable music widget for GNOME Shell.'
+        });
+        const promoBtn = new Gtk.Button({ 
+            label: 'View on GitHub', 
+            valign: Gtk.Align.CENTER 
+        });
+        promoBtn.connect('clicked', () => Gio.AppInfo.launch_default_for_uri('https://github.com/Andbal23/dynamic-music-pill', null));
+        promoRow.add_suffix(promoBtn);
+        promoGroup.add(promoRow);
+
+        aboutPage.add(promoGroup);
+        window.add(aboutPage);
 
         this._refreshCombo();
     }
@@ -155,7 +243,7 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
                 active: alwaysEnabled.includes(ext.uuid),
                 valign: Gtk.Align.CENTER,
             });
-
+            
             toggle.connect('notify::active', () => {
                 const currentList = new Set(this._settings.get_strv('always-enabled'));
                 if (toggle.get_active()) {
@@ -165,7 +253,7 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
                 }
                 this._settings.set_strv('always-enabled', [...currentList]);
             });
-
+            
             row.add_suffix(toggle);
             row.activatable_widget = toggle;
             group.add(row);
