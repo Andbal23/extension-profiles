@@ -13,6 +13,9 @@ Perfect for users who need different desktop setups for Work, Gaming, Battery-Sa
   * *Apply a specific default profile*
 * **Modern Preferences UI:** Built with GTK4 and libadwaita. Create, rename, delete, and manage profiles effortlessly.
 * **Sync from System:** Easily overwrite any profile with the exact extensions you currently have enabled in GNOME.
+<p align="center">
+<img width="501" height="321" alt="image" src="https://github.com/user-attachments/assets/2b01fbd6-5299-4038-9eff-92b7e939b661" />
+</p>
 
 ## Installation
 
