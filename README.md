@@ -13,7 +13,7 @@ Perfect for users who need different desktop setups for Work, Gaming, Battery-Sa
   * *Apply a specific default profile*
 * **Modern Preferences UI:** Built with GTK4 and libadwaita. Create, rename, delete, and manage profiles effortlessly.
 * **Sync from System:** Easily overwrite any profile with the exact extensions you currently have enabled in GNOME.
-* **Always Enabled:** Extension you don't want to include to any of your profile.
+* **Always Enabled:** Extensions you don't want to include to any of your profile.
 
 ## Tray Icon
 
