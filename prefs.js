@@ -230,8 +230,7 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         });
 
         const releaseNotes = new Gtk.Label({
-            label: " Features:\n" +
-                   "• Extension Profiles: Create, manage, and instantly switch between different sets of GNOME extensions.\n" +
+            label: "• Extension Profiles: Create, manage, and instantly switch between different sets of GNOME extensions.\n" +
                    "• Whitelist (Always Enabled): Keep your essential extensions running safely regardless of the active profile.\n" +
                    "• Keyboard Shortcut & Customization: Toggle profiles via a shortcut or configure how the tray icon looks.\n" +
                    "• Backup & Restore: Export your profiles as a JSON file and import them anytime.\n" +
