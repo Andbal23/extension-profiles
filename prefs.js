@@ -54,6 +54,30 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         startupGroup.add(this._defaultProfileRow);
         this._refreshDefaultProfileCombo();
 
+        const appearanceGroup = new Adw.PreferencesGroup({title: 'Appearance & Interaction'});
+        pageProfiles.add(appearanceGroup);
+
+        const styleRow = new Adw.ComboRow({
+            title: 'Panel Indicator Style',
+            subtitle: 'Choose how the extension looks on the top panel',
+            model: new Gtk.StringList({ strings: ['Icon only', 'Icon + Text', 'Text only', 'Hidden'] }),
+            selected: this._settings.get_int('indicator-style')
+        });
+        styleRow.connect('notify::selected', () => {
+            this._settings.set_int('indicator-style', styleRow.selected);
+        });
+        appearanceGroup.add(styleRow);
+
+        const shortcutRow = new Adw.EntryRow({
+            title: 'Keyboard Shortcut',
+            text: this._settings.get_strv('shortcut-key')[0] || '',
+            show_apply_button: true,
+        });
+        shortcutRow.connect('apply', () => {
+            this._settings.set_strv('shortcut-key', [shortcutRow.get_text()]);
+        });
+        appearanceGroup.add(shortcutRow);
+
         this._mgmtGroup = new Adw.PreferencesGroup({title: 'Profiles'});
         pageProfiles.add(this._mgmtGroup);
 
@@ -113,6 +137,54 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         this._syncRow.add_suffix(syncButton);
         this._mgmtGroup.add(this._syncRow);
 
+        const backupGroup = new Adw.PreferencesGroup({ title: 'Backup & Restore' });
+        pageProfiles.add(backupGroup);
+
+        const exportRow = new Adw.ActionRow({ title: 'Export Profiles' });
+        const exportBtn = new Gtk.Button({ label: 'Export', valign: Gtk.Align.CENTER });
+        exportBtn.connect('clicked', () => {
+            const data = this._settings.get_string('profiles');
+            const dialog = new Gtk.FileDialog({ title: 'Save Profiles Backup', initial_name: 'extension-profiles-backup.json' });
+            dialog.save(null, null, (dlg, res) => {
+                try {
+                    const file = dlg.save_finish(res);
+                    if (file) {
+                        const bytes = new GLib.Bytes(new TextEncoder().encode(data));
+                        file.replace_contents_bytes_async(bytes, null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, null, null);
+                    }
+                } catch (e) { console.error(e); }
+            });
+        });
+        exportRow.add_suffix(exportBtn);
+        backupGroup.add(exportRow);
+
+        const importRow = new Adw.ActionRow({ title: 'Import Profiles' });
+        const importBtn = new Gtk.Button({ label: 'Import', valign: Gtk.Align.CENTER });
+        importBtn.connect('clicked', () => {
+            const dialog = new Gtk.FileDialog({ title: 'Open Profiles Backup' });
+            dialog.open(null, null, (dlg, res) => {
+                try {
+                    const file = dlg.open_finish(res);
+                    if (file) {
+                        file.load_contents_async(null, (f, r) => {
+                            try {
+                                const [ok, contents] = f.load_contents_finish(r);
+                                if (ok) {
+                                    const data = new TextDecoder().decode(contents);
+                                    JSON.parse(data); // Validálás
+                                    this._settings.set_string('profiles', data);
+                                    this._loadProfiles();
+                                    this._refreshCombo();
+                                }
+                            } catch (e) { console.error(e); }
+                        });
+                    }
+                } catch (e) { console.error(e); }
+            });
+        });
+        importRow.add_suffix(importBtn);
+        backupGroup.add(importRow);
+
         this._extGroup = new Adw.PreferencesGroup();
         pageProfiles.add(this._extGroup);
 
@@ -128,10 +200,9 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         });
         this._extGroup.set_header_suffix(refreshButton);
 
-
-        const pageAlwaysOn = new Adw.PreferencesPage({ 
-            title: 'Always Enabled', 
-            icon_name: 'security-high-symbolic' 
+        const pageAlwaysOn = new Adw.PreferencesPage({
+            title: 'Always Enabled',
+            icon_name: 'security-high-symbolic'
         });
         window.add(pageAlwaysOn);
 
@@ -143,14 +214,13 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
 
         this._rebuildAlwaysOnRows(alwaysOnGroup);
 
-
         const aboutPage = new Adw.PreferencesPage({
             title: 'About',
             icon_name: 'help-about-symbolic'
         });
-        
-        const whatsNewGroup = new Adw.PreferencesGroup({ 
-            title: "What's New" 
+
+        const whatsNewGroup = new Adw.PreferencesGroup({
+            title: "What's New"
         });
 
         const releaseRow = new Adw.ExpanderRow({
@@ -160,14 +230,16 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         });
 
         const releaseNotes = new Gtk.Label({
-            label: "Features:\n" +
+            label: " Features:\n" +
                    "• Extension Profiles: Create, manage, and instantly switch between different sets of GNOME extensions.\n" +
                    "• Whitelist (Always Enabled): Keep your essential extensions running safely regardless of the active profile.\n" +
+                   "• Keyboard Shortcut & Customization: Toggle profiles via a shortcut or configure how the tray icon looks.\n" +
+                   "• Backup & Restore: Export your profiles as a JSON file and import them anytime.\n" +
                    "• Smart Startup: Choose what happens when you log in (Restore last used, apply a default, or do nothing).\n" +
                    "• Sync from System: Easily overwrite any profile with the exact extensions you currently have enabled in GNOME.",
-            justify: Gtk.Justification.LEFT, 
-            xalign: 0,                       
-            wrap: true,                      
+            justify: Gtk.Justification.LEFT,
+            xalign: 0,
+            wrap: true,
             margin_top: 10,
             margin_bottom: 10,
             margin_start: 15,
@@ -200,6 +272,15 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         bmacRow.add_suffix(bmacBtn);
         supportGroup.add(bmacRow);
 
+        const paypalRow = new Adw.ActionRow({
+            title: 'Support via PayPal',
+            subtitle: 'Direct donation via PayPal'
+        });
+        const paypalBtn = new Gtk.Button({ label: 'Open', valign: Gtk.Align.CENTER, css_classes: ['suggested-action'] });
+        paypalBtn.connect('clicked', () => Gio.AppInfo.launch_default_for_uri('https://paypal.me/andraslaszlo23', null));
+        paypalRow.add_suffix(paypalBtn);
+        supportGroup.add(paypalRow);
+
         const githubRow = new Adw.ActionRow({
             title: 'Source Code',
             subtitle: 'Report bugs or view source on GitHub'
@@ -217,11 +298,11 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
 
         const promoRow = new Adw.ActionRow({
             title: 'Dynamic Music Pill',
-            subtitle: 'A dynamic, elegant, and highly customizable music widget for GNOME Shell.'
+            subtitle: 'An elegant music player widget with an audio visualizer and seamless integration.'
         });
-        const promoBtn = new Gtk.Button({ 
-            label: 'View on GitHub', 
-            valign: Gtk.Align.CENTER 
+        const promoBtn = new Gtk.Button({
+            label: 'View on GitHub',
+            valign: Gtk.Align.CENTER
         });
         promoBtn.connect('clicked', () => Gio.AppInfo.launch_default_for_uri('https://github.com/Andbal23/dynamic-music-pill', null));
         promoRow.add_suffix(promoBtn);
@@ -243,7 +324,7 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
                 active: alwaysEnabled.includes(ext.uuid),
                 valign: Gtk.Align.CENTER,
             });
-            
+
             toggle.connect('notify::active', () => {
                 const currentList = new Set(this._settings.get_strv('always-enabled'));
                 if (toggle.get_active()) {
@@ -253,7 +334,7 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
                 }
                 this._settings.set_strv('always-enabled', [...currentList]);
             });
-            
+
             row.add_suffix(toggle);
             row.activatable_widget = toggle;
             group.add(row);

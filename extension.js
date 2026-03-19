@@ -2,6 +2,9 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
+import Shell from 'gi://Shell';
+import Meta from 'gi://Meta';
+import Clutter from 'gi://Clutter';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -15,15 +18,28 @@ class Indicator extends PanelMenu.Button {
         this._ext = ext;
         this._settings = settings;
 
+        this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
+
         const iconFile = Gio.File.new_for_path(ext.path + '/icons/extension-profiles-symbolic.svg');
-        this.add_child(new St.Icon({
+        this._icon = new St.Icon({
             gicon: new Gio.FileIcon({file: iconFile}),
             style_class: 'system-status-icon',
-        }));
+        });
+
+        this._label = new St.Label({
+            text: 'Profiles',
+            y_align: Clutter.ActorAlign.CENTER,
+            style: 'margin-left: 5px; margin-right: 5px;'
+        });
+
+        this._box.add_child(this._icon);
+        this._box.add_child(this._label);
+        this.add_child(this._box);
 
         this._rebuild();
         this._profilesId = settings.connect('changed::profiles', () => this._rebuild());
         this._activeId = settings.connect('changed::active-profile', () => this._rebuild());
+        this._styleId = settings.connect('changed::indicator-style', () => this._updateStyle());
     }
 
     _rebuild() {
@@ -50,13 +66,37 @@ class Indicator extends PanelMenu.Button {
         const prefsItem = new PopupMenu.PopupMenuItem('Preferences…');
         prefsItem.connect('activate', () => this._ext.openPreferences());
         this.menu.addMenuItem(prefsItem);
+
+        this._updateStyle();
+    }
+
+    _updateStyle() {
+        const style = this._settings.get_int('indicator-style');
+        const active = this._settings.get_string('active-profile');
+        this._label.set_text(active || 'Profiles');
+
+        this._icon.show();
+        this._label.show();
+        this.show();
+
+        if (style === 0) {
+            this._label.hide();
+        } else if (style === 1) {
+
+        } else if (style === 2) {
+            this._icon.hide();
+        } else if (style === 3) {
+            this.hide();
+        }
     }
 
     destroy() {
         this._settings.disconnect(this._profilesId);
         this._settings.disconnect(this._activeId);
+        this._settings.disconnect(this._styleId);
         this._profilesId = null;
         this._activeId = null;
+        this._styleId = null;
         super.destroy();
     }
 });
@@ -67,6 +107,18 @@ export default class ExtensionProfiles extends Extension {
         this._indicator = new Indicator(this, this._settings);
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
+        Main.wm.addKeybinding(
+            'shortcut-key',
+            this._settings,
+            Meta.KeyBindingFlags.NONE,
+            Shell.ActionMode.ALL,
+            () => {
+                if (this._indicator) {
+                    this._indicator.menu.toggle();
+                }
+            }
+        );
+
         if (!this._startupDone) {
             this._startupDone = true;
             this._applyStartupProfile();
@@ -74,6 +126,8 @@ export default class ExtensionProfiles extends Extension {
     }
 
     disable() {
+        Main.wm.removeKeybinding('shortcut-key');
+
         if (this._applySourceId) {
             GLib.Source.remove(this._applySourceId);
             this._applySourceId = null;
