@@ -1,6 +1,6 @@
 # Extension Profiles
 
-A powerful, yet safe GNOME Shell extension that lets you create, manage, and instantly switch between different sets of extensions. 
+A GNOME Shell extension that lets you create, manage, and instantly switch between different sets of extensions. 
 
 Perfect for users who need different desktop setups for Work, Gaming, Battery-Saving mode, or Screen Sharing.
 
