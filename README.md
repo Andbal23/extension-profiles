@@ -6,7 +6,7 @@ Perfect for users who need different desktop setups for Work, Gaming, Battery-Sa
 
 ---
 
-![Views](https://komarev.com/ghpvc/?username=Andbal23&repo=extension-profiles&label=Views&color=green) ![GNOME Shell](https://img.shields.io/badge/GNOME-45%20--%2050-blue?logo=gnome&logoColor=white) ![GitHub License](https://img.shields.io/github/license/Andbal23/extension-profiles)
+![Views](https://komarev.com/ghpvc/?username=Andbal23e&repo=extension-profiles&label=Views&color=green) ![GNOME Shell](https://img.shields.io/badge/GNOME-45%20--%2050-blue?logo=gnome&logoColor=white) ![GitHub License](https://img.shields.io/github/license/Andbal23/extension-profiles)
 [![Stars](https://img.shields.io/github/stars/Andbal23/extension-profiles?style=social)](https://github.com/Andbal23/extension-profiles/stargazers)
 ---
 
