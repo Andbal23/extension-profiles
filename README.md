@@ -24,7 +24,8 @@ Perfect for users who need different desktop setups for Work, Gaming, Battery-Sa
 ## Settings Page
 <p align="center">
 
-<img width="1070" height="1185" alt="image" src="https://github.com/user-attachments/assets/70579017-7625-40f6-9faf-87a65031aa86" />
+<img width="870" height="1139" alt="image" src="https://github.com/user-attachments/assets/a8b57864-2789-430a-ba73-a52b275c8c4c" />
+
 </p>
 
 ## Installation
