@@ -94,7 +94,8 @@ gnome-extensions enable extension-profiles@andbal
 
 ---
 ## Check out this one too:)
-https://github.com/Andbal23/dynamic-music-pill
+https://github.com/Andbal23/dynamic-music-pill <br>
+https://github.com/Andbal23/timed-do-not-disturb
 
 ---
 ## Support the Project
