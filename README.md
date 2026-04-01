@@ -40,7 +40,7 @@ Perfect for users who need different desktop setups for Work, Gaming, Battery-Sa
 
 ## Installation
 
-### From GNOME Extensions Store (Recommended) (Comming Soon)....
+### From GNOME Extensions Store (Recommended)
 
 <p align="center">
   <a href="https://extensions.gnome.org/extension/9545/extension-profiles/">
