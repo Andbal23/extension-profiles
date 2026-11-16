@@ -19,7 +19,8 @@
 </p>
 
 <p>
-  <img src="https://img.shields.io/gnome-extensions/dt/9545?style=flat-square&logo=gnome&label=Downloads&color=4a86cf" alt="Downloads"/>
+  
+  [![Downloads](https://img.shields.io/gnome-extensions/dt/extension-profiles@andbal?style=flat-square&color=38bdf8)](https://extensions.gnome.org/extension/9545/extension-profiles/)
   <img src="https://img.shields.io/badge/GNOME-45%20%E2%80%93%2051-blue?style=flat-square&logo=gnome" alt="GNOME 45-51"/>
   <img src="https://img.shields.io/github/stars/Andbal23/extension-profiles?style=flat-square&logo=github" alt="GitHub Stars"/>
   <img src="https://komarev.com/ghpvc/?username=Andbal23e&repo=extension-profiles&color=blue&style=flat-square&label=Views" alt="Views"/>
