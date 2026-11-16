@@ -62,7 +62,7 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         startupGroup.add(this._defaultProfileRow);
         this._refreshDefaultProfileCombo();
 
-        const appearanceGroup = new Adw.PreferencesGroup({title: 'Appearance & Interaction'});
+        const appearanceGroup = new Adw.PreferencesGroup({title: 'Appearance &amp; Interaction'});
         pageProfiles.add(appearanceGroup);
 
         const styleRow = new Adw.ComboRow({
@@ -151,7 +151,7 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         });
         pageProfiles.add(this._orderGroup);
 
-        const backupGroup = new Adw.PreferencesGroup({title: 'Backup & Restore'});
+        const backupGroup = new Adw.PreferencesGroup({title: 'Backup &amp; Restore'});
         pageProfiles.add(backupGroup);
 
         const exportRow = new Adw.ActionRow({title: 'Export Profiles'});
@@ -256,8 +256,8 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         });
 
         const v2Row = new Adw.ExpanderRow({
-            title: 'v2.0 - GNOME 51 Support & Usability Fixes',
-            subtitle: 'Profile reordering, incompatible indicator & whitelist fixes',
+            title: 'v2.0 - GNOME 51 Support &amp; Usability Fixes',
+            subtitle: 'Profile reordering, incompatible indicator &amp; whitelist fixes',
             expanded: true,
         });
 
@@ -280,7 +280,7 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
 
         const releaseRow = new Adw.ExpanderRow({
             title: 'v1.0 - Initial Release',
-            subtitle: 'Whitelist & Core Features',
+            subtitle: 'Whitelist &amp; Core Features',
             expanded: false,
         });
 

@@ -1,0 +1,65 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07131e"/>
+      <stop offset="50%" stop-color="#0b1d2e"/>
+      <stop offset="100%" stop-color="#13112b"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="25%" cy="25%" r="60%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="80%" cy="75%" r="60%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.34"/>
+      <stop offset="50%" stop-color="#34d399" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#60a5fa" stop-opacity="0.30"/>
+    </linearGradient>
+    <linearGradient id="cardBack" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#818cf8" stop-opacity="0.20"/>
+    </linearGradient>
+    <linearGradient id="cardMid" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#0891b2" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="cardFront" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="toggleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#bg)"/>
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#glow1)"/>
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#glow2)"/>
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="none" stroke="url(#border)" stroke-width="4"/>
+
+  <!-- Stacked Profile Layers -->
+  <!-- Back layer -->
+  <rect x="132" y="106" width="248" height="170" rx="28" fill="url(#cardBack)" stroke="#7dd3fc" stroke-opacity="0.45" stroke-width="3"/>
+  <!-- Middle layer -->
+  <rect x="116" y="142" width="280" height="184" rx="28" fill="url(#cardMid)" stroke="#6ee7b7" stroke-opacity="0.55" stroke-width="3"/>
+  <!-- Front active profile card -->
+  <rect x="100" y="182" width="312" height="214" rx="32" fill="url(#cardFront)" stroke="#e2e8f0" stroke-opacity="0.30" stroke-width="3"/>
+
+  <!-- Top highlight inside front card -->
+  <rect x="128" y="218" width="144" height="20" rx="10" fill="#f8fafc" fill-opacity="0.90"/>
+  <rect x="128" y="252" width="96" height="14" rx="7" fill="#94a3b8" fill-opacity="0.45"/>
+
+  <!-- Active toggle pill on card -->
+  <rect x="292" y="214" width="90" height="46" rx="23" fill="url(#toggleGrad)"/>
+  <circle cx="359" cy="237" r="17" fill="#ffffff"/>
+
+  <!-- Three profile chips / dots row inside front card -->
+  <rect x="128" y="294" width="254" height="68" rx="18" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12" stroke-width="2"/>
+  <circle cx="164" cy="328" r="14" fill="#34d399"/>
+  <rect x="192" y="320" width="96" height="16" rx="8" fill="#cbd5e1" fill-opacity="0.75"/>
+  <circle cx="348" cy="328" r="8" fill="#38bdf8"/>
+</svg>
