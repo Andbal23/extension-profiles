@@ -8,7 +8,8 @@
         "47",
         "48",
         "49",
-        "50"
+        "50",
+        "51"
     ],
     "settings-schema": "org.gnome.shell.extensions.extension-profiles",
     "donations": {
@@ -18,5 +19,5 @@
         "kofi": "andbal"
     },
     "url": "https://github.com/Andbal23/extension-profiles",
-    "version": 1
+    "version": 2
 }

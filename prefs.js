@@ -1,15 +1,21 @@
+import Adw from 'gi://Adw';
+import Gdk from 'gi://Gdk';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk';
-import Adw from 'gi://Adw';
 
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+
+const EXTENSION_STATE_OUT_OF_DATE = 4;
 
 export default class ExtensionProfilesPrefs extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         this._settings = this.getSettings();
         this._window = window;
         this._extRows = [];
+        this._orderRows = [];
+        this._alwaysOnRows = [];
         this._rebuilding = false;
         this._defaultProfileSelectedId = null;
 
@@ -19,9 +25,9 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         const profileNames = Object.keys(this._profiles);
         this._editing = profileNames.length > 0 ? profileNames[0] : null;
 
-        const pageProfiles = new Adw.PreferencesPage({ 
-            title: 'Profiles', 
-            icon_name: 'view-list-symbolic' 
+        const pageProfiles = new Adw.PreferencesPage({
+            title: 'Profiles',
+            icon_name: 'view-list-symbolic',
         });
         window.add(pageProfiles);
 
@@ -50,7 +56,9 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
             title: 'Default profile',
             sensitive: currentMode === 'default',
         });
-        this._settings.connect('changed::profiles', () => this._refreshDefaultProfileCombo());
+        this._profilesChangedId = this._settings.connect('changed::profiles', () => {
+            this._refreshDefaultProfileCombo();
+        });
         startupGroup.add(this._defaultProfileRow);
         this._refreshDefaultProfileCombo();
 
@@ -60,8 +68,8 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         const styleRow = new Adw.ComboRow({
             title: 'Panel Indicator Style',
             subtitle: 'Choose how the extension looks on the top panel',
-            model: new Gtk.StringList({ strings: ['Icon only', 'Icon + Text', 'Text only', 'Hidden'] }),
-            selected: this._settings.get_int('indicator-style')
+            model: new Gtk.StringList({strings: ['Icon only', 'Icon + Text', 'Text only', 'Hidden']}),
+            selected: this._settings.get_int('indicator-style'),
         });
         styleRow.connect('notify::selected', () => {
             this._settings.set_int('indicator-style', styleRow.selected);
@@ -137,32 +145,48 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         this._syncRow.add_suffix(syncButton);
         this._mgmtGroup.add(this._syncRow);
 
-        const backupGroup = new Adw.PreferencesGroup({ title: 'Backup & Restore' });
+        this._orderGroup = new Adw.PreferencesGroup({
+            title: 'Profile Order',
+            description: 'Drag rows or use the arrows to change the order shown in the selector menu.',
+        });
+        pageProfiles.add(this._orderGroup);
+
+        const backupGroup = new Adw.PreferencesGroup({title: 'Backup & Restore'});
         pageProfiles.add(backupGroup);
 
-        const exportRow = new Adw.ActionRow({ title: 'Export Profiles' });
-        const exportBtn = new Gtk.Button({ label: 'Export', valign: Gtk.Align.CENTER });
+        const exportRow = new Adw.ActionRow({title: 'Export Profiles'});
+        const exportBtn = new Gtk.Button({label: 'Export', valign: Gtk.Align.CENTER});
         exportBtn.connect('clicked', () => {
             const data = this._settings.get_string('profiles');
-            const dialog = new Gtk.FileDialog({ title: 'Save Profiles Backup', initial_name: 'extension-profiles-backup.json' });
-            dialog.save(null, null, (dlg, res) => {
+            const dialog = new Gtk.FileDialog({
+                title: 'Save Profiles Backup',
+                initial_name: 'extension-profiles-backup.json',
+            });
+            dialog.save(this._window, null, (dlg, res) => {
                 try {
                     const file = dlg.save_finish(res);
                     if (file) {
                         const bytes = new GLib.Bytes(new TextEncoder().encode(data));
-                        file.replace_contents_bytes_async(bytes, null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, null, null);
+                        file.replace_contents_bytes_async(
+                            bytes, null, false,
+                            Gio.FileCreateFlags.REPLACE_DESTINATION,
+                            null, null
+                        );
                     }
-                } catch (e) { console.error(e); }
+                } catch (e) {
+                    if (!e.matches?.(Gtk.DialogError, Gtk.DialogError.DISMISSED))
+                        console.error(e);
+                }
             });
         });
         exportRow.add_suffix(exportBtn);
         backupGroup.add(exportRow);
 
-        const importRow = new Adw.ActionRow({ title: 'Import Profiles' });
-        const importBtn = new Gtk.Button({ label: 'Import', valign: Gtk.Align.CENTER });
+        const importRow = new Adw.ActionRow({title: 'Import Profiles'});
+        const importBtn = new Gtk.Button({label: 'Import', valign: Gtk.Align.CENTER});
         importBtn.connect('clicked', () => {
-            const dialog = new Gtk.FileDialog({ title: 'Open Profiles Backup' });
-            dialog.open(null, null, (dlg, res) => {
+            const dialog = new Gtk.FileDialog({title: 'Open Profiles Backup'});
+            dialog.open(this._window, null, (dlg, res) => {
                 try {
                     const file = dlg.open_finish(res);
                     if (file) {
@@ -171,15 +195,22 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
                                 const [ok, contents] = f.load_contents_finish(r);
                                 if (ok) {
                                     const data = new TextDecoder().decode(contents);
-                                    JSON.parse(data); // Validálás
+                                    const parsed = JSON.parse(data);
+                                    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+                                        return;
                                     this._settings.set_string('profiles', data);
                                     this._loadProfiles();
                                     this._refreshCombo();
                                 }
-                            } catch (e) { console.error(e); }
+                            } catch (e) {
+                                console.error(e);
+                            }
                         });
                     }
-                } catch (e) { console.error(e); }
+                } catch (e) {
+                    if (!e.matches?.(Gtk.DialogError, Gtk.DialogError.DISMISSED))
+                        console.error(e);
+                }
             });
         });
         importRow.add_suffix(importBtn);
@@ -197,52 +228,76 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         refreshButton.connect('clicked', () => {
             this._installed = this._getInstalledExtensions();
             this._rebuildExtRows();
+            this._rebuildAlwaysOnRows();
         });
         this._extGroup.set_header_suffix(refreshButton);
 
         const pageAlwaysOn = new Adw.PreferencesPage({
             title: 'Always Enabled',
-            icon_name: 'security-high-symbolic'
+            icon_name: 'security-high-symbolic',
         });
         window.add(pageAlwaysOn);
 
-        const alwaysOnGroup = new Adw.PreferencesGroup({
+        this._alwaysOnGroup = new Adw.PreferencesGroup({
             title: 'Whitelist',
-            description: 'These extensions will NEVER be disabled, regardless of which profile is active.'
+            description: 'These extensions will NEVER be disabled, regardless of which profile is active.',
         });
-        pageAlwaysOn.add(alwaysOnGroup);
+        pageAlwaysOn.add(this._alwaysOnGroup);
 
-        this._rebuildAlwaysOnRows(alwaysOnGroup);
+        this._rebuildAlwaysOnRows();
 
         const aboutPage = new Adw.PreferencesPage({
             title: 'About',
-            icon_name: 'help-about-symbolic'
+            icon_name: 'help-about-symbolic',
         });
 
         const whatsNewGroup = new Adw.PreferencesGroup({
-            title: "What's New"
+            title: "What's New",
         });
 
-        const releaseRow = new Adw.ExpanderRow({
-            title: "v1.0 - Initial Release",
-            subtitle: "Whitelist & Core Features",
-            expanded: true
+        const v2Row = new Adw.ExpanderRow({
+            title: 'v2.0 - GNOME 51 Support & Usability Fixes',
+            subtitle: 'Profile reordering, incompatible indicator & whitelist fixes',
+            expanded: true,
         });
 
-        const releaseNotes = new Gtk.Label({
-            label: "• Extension Profiles: Create, manage, and instantly switch between different sets of GNOME extensions.\n" +
-                   "• Whitelist (Always Enabled): Keep your essential extensions running safely regardless of the active profile.\n" +
-                   "• Keyboard Shortcut & Customization: Toggle profiles via a shortcut or configure how the tray icon looks.\n" +
-                   "• Backup & Restore: Export your profiles as a JSON file and import them anytime.\n" +
-                   "• Smart Startup: Choose what happens when you log in (Restore last used, apply a default, or do nothing).\n" +
-                   "• Sync from System: Easily overwrite any profile with the exact extensions you currently have enabled in GNOME.",
+        const v2Notes = new Gtk.Label({
+            label:
+                '• Added GNOME 51 support.\n' +
+                '• Profile Ordering: Drag-and-drop or use arrow buttons to customize the order of profiles in the selector menu.\n' +
+                '• Incompatible Indicator: Displays a red warning clock icon next to extensions incompatible with the current GNOME Shell version.\n' +
+                '• Whitelist & Switching Fixes: Clears GNOME Shell disabled-extensions when enabling profile or whitelisted entries, immediately applies whitelist additions, and preserves active extension order during switches.',
             justify: Gtk.Justification.LEFT,
             xalign: 0,
             wrap: true,
             margin_top: 10,
             margin_bottom: 10,
             margin_start: 15,
-            margin_end: 15
+            margin_end: 15,
+        });
+        v2Row.add_row(v2Notes);
+        whatsNewGroup.add(v2Row);
+
+        const releaseRow = new Adw.ExpanderRow({
+            title: 'v1.0 - Initial Release',
+            subtitle: 'Whitelist & Core Features',
+            expanded: false,
+        });
+
+        const releaseNotes = new Gtk.Label({
+            label: '• Extension Profiles: Create, manage, and instantly switch between different sets of GNOME extensions.\n' +
+                   '• Whitelist (Always Enabled): Keep your essential extensions running safely regardless of the active profile.\n' +
+                   '• Keyboard Shortcut & Customization: Toggle profiles via a shortcut or configure how the tray icon looks.\n' +
+                   '• Backup & Restore: Export your profiles as a JSON file and import them anytime.\n' +
+                   '• Smart Startup: Choose what happens when you log in (Restore last used, apply a default, or do nothing).\n' +
+                   '• Sync from System: Easily overwrite any profile with the exact extensions you currently have enabled in GNOME.',
+            justify: Gtk.Justification.LEFT,
+            xalign: 0,
+            wrap: true,
+            margin_top: 10,
+            margin_bottom: 10,
+            margin_start: 15,
+            margin_end: 15,
         });
 
         releaseRow.add_row(releaseNotes);
@@ -250,41 +305,41 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         aboutPage.add(whatsNewGroup);
 
         const supportGroup = new Adw.PreferencesGroup({
-            title: 'Support the Project'
+            title: 'Support the Project',
         });
 
         const kofiRow = new Adw.ActionRow({
             title: 'Support on Ko-fi',
-            subtitle: 'Buy me a coffee on Ko-fi'
+            subtitle: 'Buy me a coffee on Ko-fi',
         });
-        const kofiBtn = new Gtk.Button({ label: 'Open', valign: Gtk.Align.CENTER, css_classes: ['suggested-action'] });
+        const kofiBtn = new Gtk.Button({label: 'Open', valign: Gtk.Align.CENTER, css_classes: ['suggested-action']});
         kofiBtn.connect('clicked', () => Gio.AppInfo.launch_default_for_uri('https://ko-fi.com/andbal', null));
         kofiRow.add_suffix(kofiBtn);
         supportGroup.add(kofiRow);
 
         const bmacRow = new Adw.ActionRow({
             title: 'Buy Me a Coffee',
-            subtitle: 'Support via BuyMeACoffee'
+            subtitle: 'Support via BuyMeACoffee',
         });
-        const bmacBtn = new Gtk.Button({ label: 'Open', valign: Gtk.Align.CENTER, css_classes: ['suggested-action'] });
+        const bmacBtn = new Gtk.Button({label: 'Open', valign: Gtk.Align.CENTER, css_classes: ['suggested-action']});
         bmacBtn.connect('clicked', () => Gio.AppInfo.launch_default_for_uri('https://buymeacoffee.com/andbal', null));
         bmacRow.add_suffix(bmacBtn);
         supportGroup.add(bmacRow);
 
         const paypalRow = new Adw.ActionRow({
             title: 'Support via PayPal',
-            subtitle: 'Direct donation via PayPal'
+            subtitle: 'Direct donation via PayPal',
         });
-        const paypalBtn = new Gtk.Button({ label: 'Open', valign: Gtk.Align.CENTER, css_classes: ['suggested-action'] });
+        const paypalBtn = new Gtk.Button({label: 'Open', valign: Gtk.Align.CENTER, css_classes: ['suggested-action']});
         paypalBtn.connect('clicked', () => Gio.AppInfo.launch_default_for_uri('https://paypal.me/andraslaszlo23', null));
         paypalRow.add_suffix(paypalBtn);
         supportGroup.add(paypalRow);
 
         const githubRow = new Adw.ActionRow({
             title: 'Source Code',
-            subtitle: 'Report bugs or view source on GitHub'
+            subtitle: 'Report bugs or view source on GitHub',
         });
-        const githubBtn = new Gtk.Button({ icon_name: 'external-link-symbolic', valign: Gtk.Align.CENTER });
+        const githubBtn = new Gtk.Button({icon_name: 'external-link-symbolic', valign: Gtk.Align.CENTER});
         githubBtn.connect('clicked', () => Gio.AppInfo.launch_default_for_uri('https://github.com/Andbal23/extension-profiles', null));
         githubRow.add_suffix(githubBtn);
         supportGroup.add(githubRow);
@@ -292,16 +347,16 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         aboutPage.add(supportGroup);
 
         const promoGroup = new Adw.PreferencesGroup({
-            title: 'Check Out My Other Extension'
+            title: 'Check Out My Other Extensions',
         });
 
         const promoRow = new Adw.ActionRow({
             title: 'Dynamic Music Pill',
-            subtitle: 'An elegant music player widget with an audio visualizer and seamless integration.'
+            subtitle: 'An elegant music player widget with an audio visualizer and seamless integration.',
         });
         const promoBtn = new Gtk.Button({
             label: 'View on GitHub',
-            valign: Gtk.Align.CENTER
+            valign: Gtk.Align.CENTER,
         });
         promoBtn.connect('clicked', () => Gio.AppInfo.launch_default_for_uri('https://github.com/Andbal23/dynamic-music-pill', null));
         promoRow.add_suffix(promoBtn);
@@ -310,33 +365,75 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         aboutPage.add(promoGroup);
         window.add(aboutPage);
 
+        window.connect('close-request', () => {
+            if (this._profilesChangedId) {
+                this._settings?.disconnect(this._profilesChangedId);
+                this._profilesChangedId = null;
+            }
+            if (this._defaultProfileSelectedId) {
+                this._defaultProfileRow?.disconnect(this._defaultProfileSelectedId);
+                this._defaultProfileSelectedId = null;
+            }
+            return false;
+        });
+
         this._refreshCombo();
     }
 
-    _rebuildAlwaysOnRows(group) {
+    _escapeMarkup(text) {
+        return text ? GLib.markup_escape_text(String(text), -1) : '';
+    }
+
+    _createExtensionRow(ext, isActive, onToggle) {
+        const row = new Adw.ActionRow({
+            title: this._escapeMarkup(ext.name),
+            subtitle: this._escapeMarkup(ext.uuid),
+        });
+
+        if (ext.incompatible) {
+            const incompatIcon = new Gtk.Image({
+                icon_name: 'preferences-system-time-symbolic',
+                css_classes: ['error'],
+                valign: Gtk.Align.CENTER,
+                tooltip_text: 'Incompatible with the current GNOME Shell version',
+            });
+            row.add_suffix(incompatIcon);
+        }
+
+        const toggle = new Gtk.Switch({
+            active: isActive,
+            valign: Gtk.Align.CENTER,
+        });
+        toggle.connect('notify::active', () => onToggle(toggle.get_active()));
+
+        row.add_suffix(toggle);
+        row.activatable_widget = toggle;
+        return row;
+    }
+
+    _rebuildAlwaysOnRows() {
+        for (const row of this._alwaysOnRows)
+            this._alwaysOnGroup.remove(row);
+        this._alwaysOnRows = [];
+
         const alwaysEnabled = this._settings.get_strv('always-enabled');
         const sorted = [...this._installed].sort((a, b) => a.name.localeCompare(b.name));
 
         for (const ext of sorted) {
-            const row = new Adw.ActionRow({title: ext.name, subtitle: ext.uuid});
-            const toggle = new Gtk.Switch({
-                active: alwaysEnabled.includes(ext.uuid),
-                valign: Gtk.Align.CENTER,
-            });
-
-            toggle.connect('notify::active', () => {
-                const currentList = new Set(this._settings.get_strv('always-enabled'));
-                if (toggle.get_active()) {
-                    currentList.add(ext.uuid);
-                } else {
-                    currentList.delete(ext.uuid);
+            const row = this._createExtensionRow(
+                ext,
+                alwaysEnabled.includes(ext.uuid),
+                (active) => {
+                    const currentList = new Set(this._settings.get_strv('always-enabled'));
+                    if (active)
+                        currentList.add(ext.uuid);
+                    else
+                        currentList.delete(ext.uuid);
+                    this._settings.set_strv('always-enabled', [...currentList]);
                 }
-                this._settings.set_strv('always-enabled', [...currentList]);
-            });
-
-            row.add_suffix(toggle);
-            row.activatable_widget = toggle;
-            group.add(row);
+            );
+            this._alwaysOnGroup.add(row);
+            this._alwaysOnRows.push(row);
         }
     }
 
@@ -408,8 +505,12 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         if (!newName || newName === this._editing || this._profiles[newName])
             return;
 
-        this._profiles[newName] = this._profiles[this._editing];
-        delete this._profiles[this._editing];
+        // Preserve insertion order position when renaming a profile key.
+        const rebuilt = {};
+        for (const [k, v] of Object.entries(this._profiles)) {
+            rebuilt[k === this._editing ? newName : k] = v;
+        }
+        this._profiles = rebuilt;
 
         if (this._settings.get_string('active-profile') === this._editing)
             this._settings.set_string('active-profile', newName);
@@ -423,15 +524,111 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         this._refreshCombo();
     }
 
+    _moveProfile(fromName, toIndex) {
+        const entries = Object.entries(this._profiles);
+        const fromIndex = entries.findIndex(([k]) => k === fromName);
+        if (fromIndex === -1 || toIndex < 0 || toIndex >= entries.length || fromIndex === toIndex)
+            return;
+
+        const [moved] = entries.splice(fromIndex, 1);
+        entries.splice(toIndex, 0, moved);
+        this._profiles = Object.fromEntries(entries);
+        this._saveProfiles();
+        this._refreshCombo();
+    }
+
+    _rebuildOrderRows() {
+        for (const row of this._orderRows)
+            this._orderGroup.remove(row);
+        this._orderRows = [];
+
+        const entries = Object.entries(this._profiles);
+        if (entries.length === 0) {
+            const emptyRow = new Adw.ActionRow({
+                title: 'No profiles yet',
+                subtitle: 'Create a profile above to manage its order.',
+                sensitive: false,
+            });
+            this._orderGroup.add(emptyRow);
+            this._orderRows.push(emptyRow);
+            return;
+        }
+
+        entries.forEach(([name, uuids], idx) => {
+            const count = Array.isArray(uuids) ? uuids.length : 0;
+            const row = new Adw.ActionRow({
+                title: this._escapeMarkup(name),
+                subtitle: `${count} extension${count === 1 ? '' : 's'}`,
+            });
+
+            const dragHandle = new Gtk.Image({
+                icon_name: 'list-drag-handle-symbolic',
+                css_classes: ['dim-label'],
+                valign: Gtk.Align.CENTER,
+            });
+            row.add_prefix(dragHandle);
+
+            const dragSource = new Gtk.DragSource({actions: Gdk.DragAction.MOVE});
+            dragSource.connect('prepare', () => {
+                const value = new GObject.Value();
+                value.init(GObject.TYPE_STRING);
+                value.set_string(name);
+                return Gdk.ContentProvider.new_for_value(value);
+            });
+            dragSource.connect('drag-begin', (src) => {
+                src.set_icon(Gtk.WidgetPaintable.new(row), 0, 0);
+            });
+            row.add_controller(dragSource);
+
+            const dropTarget = Gtk.DropTarget.new(GObject.TYPE_STRING, Gdk.DragAction.MOVE);
+            dropTarget.connect('drop', (_target, value) => {
+                if (typeof value === 'string' && value !== name) {
+                    this._moveProfile(value, idx);
+                    return true;
+                }
+                return false;
+            });
+            row.add_controller(dropTarget);
+
+            const btnBox = new Gtk.Box({spacing: 4, valign: Gtk.Align.CENTER});
+            const upBtn = new Gtk.Button({
+                icon_name: 'go-up-symbolic',
+                css_classes: ['flat'],
+                valign: Gtk.Align.CENTER,
+                sensitive: idx > 0,
+                tooltip_text: 'Move up',
+            });
+            upBtn.connect('clicked', () => this._moveProfile(name, idx - 1));
+
+            const downBtn = new Gtk.Button({
+                icon_name: 'go-down-symbolic',
+                css_classes: ['flat'],
+                valign: Gtk.Align.CENTER,
+                sensitive: idx < entries.length - 1,
+                tooltip_text: 'Move down',
+            });
+            downBtn.connect('clicked', () => this._moveProfile(name, idx + 1));
+
+            btnBox.append(upBtn);
+            btnBox.append(downBtn);
+            row.add_suffix(btnBox);
+
+            this._orderGroup.add(row);
+            this._orderRows.push(row);
+        });
+    }
+
     _syncFromSystem() {
         if (!this._editing)
             return;
 
         const shellSettings = new Gio.Settings({schema_id: 'org.gnome.shell'});
+        const disabled = new Set(shellSettings.get_strv('disabled-extensions'));
         this._profiles[this._editing] = shellSettings.get_strv('enabled-extensions')
-            .filter(u => u !== this.metadata.uuid);
+            .filter(u => u !== this.metadata.uuid && !disabled.has(u));
         this._saveProfiles();
         this._rebuildExtRows();
+        this._rebuildOrderRows();
     }
 
     _refreshCombo() {
@@ -454,9 +651,12 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
             this._comboRow.set_selected(idx > -1 ? idx : 0);
             if (idx === -1)
                 this._editing = names[0];
+        } else {
+            this._editing = null;
         }
 
         this._rebuilding = false;
+        this._rebuildOrderRows();
         this._rebuildExtRows();
     }
 
@@ -470,7 +670,7 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
             return;
         }
 
-        this._extGroup.set_title(`Extensions in "${this._editing}"`);
+        this._extGroup.set_title(this._escapeMarkup(`Extensions in "${this._editing}"`));
 
         const profileExts = this._profiles[this._editing];
         const sorted = [...this._installed].sort((a, b) => {
@@ -482,23 +682,20 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         });
 
         for (const ext of sorted) {
-            const row = new Adw.ActionRow({title: ext.name, subtitle: ext.uuid});
-            const toggle = new Gtk.Switch({
-                active: profileExts.includes(ext.uuid),
-                valign: Gtk.Align.CENTER,
-            });
-            toggle.connect('notify::active', () => {
-                const on = toggle.get_active();
-                const list = this._profiles[this._editing];
-                const idx = list.indexOf(ext.uuid);
-                if (on && idx === -1)
-                    list.push(ext.uuid);
-                else if (!on && idx > -1)
-                    list.splice(idx, 1);
-                this._saveProfiles();
-            });
-            row.add_suffix(toggle);
-            row.activatable_widget = toggle;
+            const row = this._createExtensionRow(
+                ext,
+                profileExts.includes(ext.uuid),
+                (on) => {
+                    const list = this._profiles[this._editing];
+                    const idx = list.indexOf(ext.uuid);
+                    if (on && idx === -1)
+                        list.push(ext.uuid);
+                    else if (!on && idx > -1)
+                        list.splice(idx, 1);
+                    this._saveProfiles();
+                    this._rebuildOrderRows();
+                }
+            );
             this._extGroup.add(row);
             this._extRows.push(row);
         }
@@ -507,7 +704,7 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
     _loadProfiles() {
         try {
             const parsed = JSON.parse(this._settings.get_string('profiles'));
-            this._profiles = typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+            this._profiles = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
         } catch {
             this._profiles = {};
         }
@@ -517,8 +714,55 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
         this._settings.set_string('profiles', JSON.stringify(this._profiles));
     }
 
+    _getShellExtensionStates() {
+        const states = new Map();
+        let shellMajor = null;
+
+        try {
+            const versionRes = Gio.DBus.session.call_sync(
+                'org.gnome.Shell',
+                '/org/gnome/Shell',
+                'org.freedesktop.DBus.Properties',
+                'Get',
+                new GLib.Variant('(ss)', ['org.gnome.Shell.Extensions', 'ShellVersion']),
+                new GLib.VariantType('(v)'),
+                Gio.DBusCallFlags.NONE,
+                250,
+                null
+            );
+            const [verVariant] = versionRes.deepUnpack();
+            const verStr = verVariant?.deepUnpack?.() ?? verVariant;
+            if (typeof verStr === 'string' && verStr.length > 0)
+                shellMajor = verStr.split('.')[0];
+        } catch {
+        }
+
+        try {
+            const listRes = Gio.DBus.session.call_sync(
+                'org.gnome.Shell',
+                '/org/gnome/Shell',
+                'org.gnome.Shell.Extensions',
+                'ListExtensions',
+                null,
+                new GLib.VariantType('(a{sa{sv}})'),
+                Gio.DBusCallFlags.NONE,
+                250,
+                null
+            );
+            const [extensionsMap] = listRes.deepUnpack();
+            for (const [uuid, props] of Object.entries(extensionsMap)) {
+                const stateVal = props.state?.unpack?.() ?? props.state;
+                states.set(uuid, stateVal);
+            }
+        } catch {
+        }
+
+        return {states, shellMajor};
+    }
+
     _getInstalledExtensions() {
         const found = new Map();
+        const {states, shellMajor} = this._getShellExtensionStates();
         const searchPaths = [
             GLib.build_filenamev([GLib.get_user_data_dir(), 'gnome-shell', 'extensions']),
             '/usr/share/gnome-shell/extensions',
@@ -552,8 +796,20 @@ export default class ExtensionProfilesPrefs extends ExtensionPreferences {
 
                 try {
                     const meta = JSON.parse(new TextDecoder().decode(contents));
-                    if (meta.uuid && meta.uuid !== this.metadata.uuid && !found.has(meta.uuid))
-                        found.set(meta.uuid, {uuid: meta.uuid, name: meta.name ?? meta.uuid});
+                    if (meta.uuid && meta.uuid !== this.metadata.uuid && !found.has(meta.uuid)) {
+                        const shellState = states.get(meta.uuid);
+                        const isOutOfDateState = shellState === EXTENSION_STATE_OUT_OF_DATE;
+                        const versions = Array.isArray(meta['shell-version']) ? meta['shell-version'] : [];
+                        const unsupportedVersion = shellMajor !== null &&
+                            versions.length > 0 &&
+                            !versions.some(v => String(v).split('.')[0] === shellMajor);
+
+                        found.set(meta.uuid, {
+                            uuid: meta.uuid,
+                            name: meta.name ?? meta.uuid,
+                            incompatible: isOutOfDateState || unsupportedVersion,
+                        });
+                    }
                 } catch {
                 }
             }

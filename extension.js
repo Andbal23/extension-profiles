@@ -18,9 +18,9 @@ class Indicator extends PanelMenu.Button {
         this._ext = ext;
         this._settings = settings;
 
-        this._box = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
+        this._box = new St.BoxLayout({style_class: 'panel-status-indicators-box'});
 
-        const iconFile = Gio.File.new_for_path(ext.path + '/icons/extension-profiles-symbolic.svg');
+        const iconFile = Gio.File.new_for_path(`${ext.path}/icons/extension-profiles-symbolic.svg`);
         this._icon = new St.Icon({
             gicon: new Gio.FileIcon({file: iconFile}),
             style_class: 'system-status-icon',
@@ -29,7 +29,7 @@ class Indicator extends PanelMenu.Button {
         this._label = new St.Label({
             text: 'Profiles',
             y_align: Clutter.ActorAlign.CENTER,
-            style: 'margin-left: 5px; margin-right: 5px;'
+            style: 'margin-left: 5px; margin-right: 5px;',
         });
 
         this._box.add_child(this._icon);
@@ -47,7 +47,9 @@ class Indicator extends PanelMenu.Button {
 
         let profiles = {};
         try {
-            profiles = JSON.parse(this._settings.get_string('profiles'));
+            const parsed = JSON.parse(this._settings.get_string('profiles'));
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
+                profiles = parsed;
         } catch {
         }
 
@@ -79,24 +81,29 @@ class Indicator extends PanelMenu.Button {
         this._label.show();
         this.show();
 
-        if (style === 0) {
+        if (style === 0)
             this._label.hide();
-        } else if (style === 1) {
-
-        } else if (style === 2) {
+        else if (style === 2)
             this._icon.hide();
-        } else if (style === 3) {
+        else if (style === 3)
             this.hide();
-        }
     }
 
     destroy() {
-        this._settings.disconnect(this._profilesId);
-        this._settings.disconnect(this._activeId);
-        this._settings.disconnect(this._styleId);
-        this._profilesId = null;
-        this._activeId = null;
-        this._styleId = null;
+        if (this._profilesId) {
+            this._settings?.disconnect(this._profilesId);
+            this._profilesId = null;
+        }
+        if (this._activeId) {
+            this._settings?.disconnect(this._activeId);
+            this._activeId = null;
+        }
+        if (this._styleId) {
+            this._settings?.disconnect(this._styleId);
+            this._styleId = null;
+        }
+        this._settings = null;
+        this._ext = null;
         super.destroy();
     }
 });
@@ -107,15 +114,19 @@ export default class ExtensionProfiles extends Extension {
         this._indicator = new Indicator(this, this._settings);
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
+        this._alwaysEnabledId = this._settings.connect(
+            'changed::always-enabled',
+            () => this._syncAlwaysEnabled()
+        );
+
         Main.wm.addKeybinding(
             'shortcut-key',
             this._settings,
             Meta.KeyBindingFlags.NONE,
             Shell.ActionMode.ALL,
             () => {
-                if (this._indicator) {
+                if (this._indicator)
                     this._indicator.menu.toggle();
-                }
             }
         );
 
@@ -128,9 +139,17 @@ export default class ExtensionProfiles extends Extension {
     disable() {
         Main.wm.removeKeybinding('shortcut-key');
 
+        if (this._alwaysEnabledId) {
+            this._settings?.disconnect(this._alwaysEnabledId);
+            this._alwaysEnabledId = null;
+        }
         if (this._applySourceId) {
             GLib.Source.remove(this._applySourceId);
             this._applySourceId = null;
+        }
+        if (this._followupSourceId) {
+            GLib.Source.remove(this._followupSourceId);
+            this._followupSourceId = null;
         }
         this._indicator?.destroy();
         this._indicator = null;
@@ -153,41 +172,114 @@ export default class ExtensionProfiles extends Extension {
 
         let profiles = {};
         try {
-            profiles = JSON.parse(this._settings.get_string('profiles'));
+            const parsed = JSON.parse(this._settings.get_string('profiles'));
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
+                profiles = parsed;
         } catch {
         }
 
         const uuids = profiles[profileName];
-        if (uuids)
+        if (Array.isArray(uuids))
             this.applyProfile(profileName, uuids);
     }
 
     applyProfile(profileName, extensions) {
-        if (this._applySourceId) {
+        if (this._applySourceId)
             GLib.Source.remove(this._applySourceId);
-        }
 
         this._applySourceId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
             this._applySourceId = null;
-            this._doApply(profileName, extensions);
+            this._doApply(profileName, Array.isArray(extensions) ? extensions : []);
             return GLib.SOURCE_REMOVE;
         });
     }
 
-    _doApply(profileName, extensions) {
-        const shellSettings = new Gio.Settings({schema_id: 'org.gnome.shell'});
+    _arraysEqual(a, b) {
+        if (a.length !== b.length)
+            return false;
+        for (let i = 0; i < a.length; i++) {
+            if (a[i] !== b[i])
+                return false;
+        }
+        return true;
+    }
 
-        const newEnabled = new Set(extensions);
-
-        const alwaysEnabled = this._settings.get_strv('always-enabled');
-        for (const uuid of alwaysEnabled) {
-            newEnabled.add(uuid);
+    _applyShellLists(nextEnabled, enableTargetSet) {
+        if (this._followupSourceId) {
+            GLib.Source.remove(this._followupSourceId);
+            this._followupSourceId = null;
         }
 
-        newEnabled.add(this.uuid);
+        const shellSettings = new Gio.Settings({schema_id: 'org.gnome.shell'});
+        const currentEnabled = shellSettings.get_strv('enabled-extensions');
+        const currentDisabled = shellSettings.get_strv('disabled-extensions');
 
-        shellSettings.set_strv('enabled-extensions', [...newEnabled]);
+        const nextDisabled = currentDisabled.filter(uuid => !enableTargetSet.has(uuid));
+        const disabledChanged = nextDisabled.length !== currentDisabled.length;
+        const enabledChanged = !this._arraysEqual(currentEnabled, nextEnabled);
 
+        if (disabledChanged) {
+            const reEnabledFromCurrent = currentDisabled.some(
+                uuid => enableTargetSet.has(uuid) && currentEnabled.includes(uuid)
+            );
+            shellSettings.set_strv('disabled-extensions', nextDisabled);
+            if (enabledChanged) {
+                if (reEnabledFromCurrent) {
+                    this._followupSourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
+                        this._followupSourceId = null;
+                        shellSettings.set_strv('enabled-extensions', nextEnabled);
+                        return GLib.SOURCE_REMOVE;
+                    });
+                } else {
+                    shellSettings.set_strv('enabled-extensions', nextEnabled);
+                }
+            }
+        } else if (enabledChanged) {
+            shellSettings.set_strv('enabled-extensions', nextEnabled);
+        }
+    }
+
+    _syncAlwaysEnabled() {
+        const alwaysEnabled = this._settings.get_strv('always-enabled');
+        if (alwaysEnabled.length === 0)
+            return;
+
+        const shellSettings = new Gio.Settings({schema_id: 'org.gnome.shell'});
+        const currentEnabled = shellSettings.get_strv('enabled-extensions');
+        const nextEnabled = [...currentEnabled];
+        for (const uuid of alwaysEnabled) {
+            if (!nextEnabled.includes(uuid))
+                nextEnabled.push(uuid);
+        }
+
+        this._applyShellLists(nextEnabled, new Set(alwaysEnabled));
+    }
+
+    _doApply(profileName, extensions) {
+        const shellSettings = new Gio.Settings({schema_id: 'org.gnome.shell'});
+        const alwaysEnabled = this._settings.get_strv('always-enabled');
+        const orderedDesired = [this.uuid, ...alwaysEnabled, ...extensions];
+        const targetSet = new Set(orderedDesired);
+        const currentEnabled = shellSettings.get_strv('enabled-extensions');
+
+        // Keep existing order of extensions that remain active to minimize
+        // unnecessary disable/re-enable cycling by GNOME Shell.
+        const nextEnabled = [];
+        const seen = new Set();
+        for (const uuid of currentEnabled) {
+            if (targetSet.has(uuid) && !seen.has(uuid)) {
+                nextEnabled.push(uuid);
+                seen.add(uuid);
+            }
+        }
+        for (const uuid of orderedDesired) {
+            if (!seen.has(uuid)) {
+                nextEnabled.push(uuid);
+                seen.add(uuid);
+            }
+        }
+
+        this._applyShellLists(nextEnabled, targetSet);
         this._settings.set_string('active-profile', profileName);
     }
 }
